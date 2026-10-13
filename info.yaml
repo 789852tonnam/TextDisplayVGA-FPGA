@@ -1,0 +1,15 @@
+# VGA Playground GitHub import configuration
+project:
+  title: "FPGA Text Marquee"
+  description: "VGA text editor, bracket selection, and a scrolling sign with an eleven-character queue"
+  language: "Verilog"
+  clock_hz: 25175000
+  top_module: "tt_um_vga_example"
+  source_files:
+    - "19_top_SwitchTextDisplay_playground.v"
+    - "19_text_screen_gen_playground.v"
+    - "13_simpledualportMem.v"
+    - "19_ascii_rom_playground.v"
+    - "gamepad_pmod.v"
+    - "hsync_generator.v"
+yaml_version: 6

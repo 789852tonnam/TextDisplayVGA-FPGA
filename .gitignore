@@ -1,0 +1,14 @@
+# Python and Vivado simulation/build outputs
+__pycache__/
+*.pyc
+.Xil/
+xsim.dir/
+*.log
+*.jou
+*.pb
+*.wdb
+*.str
+*.rpt
+*.hex
+*.dcp
+*.bit
