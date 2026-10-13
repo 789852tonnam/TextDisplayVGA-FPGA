@@ -1,13 +1,29 @@
 # FPGA Text Marquee
 
-ป้ายไฟ VGA ที่แก้ข้อความด้วย gamepad และเลือกช่วงข้อความด้วย `< >` เพื่อเลื่อนบนจอ
+A Verilog VGA text editor and scrolling sign for a 640×480 display. Edit characters with a gamepad, select a message with `< >` overlays, and switch to a scrolling display.
 
-[เปิดโปรเจกต์นี้บน VGA Playground จาก GitHub](https://vga-playground.com/?repo=https://github.com/789852tonnam/TextDisplayVGA-FPGA&ref=main)
+[Open in VGA Playground](https://vga-playground.com/?repo=https://github.com/789852tonnam/TextDisplayVGA-FPGA&ref=main)
 
-ลิงก์อ่านโค้ดจาก branch `main` บน GitHub; หลัง push โค้ดแล้ว เปิดลิงก์และเปิด Gamepad Mode เพื่อใช้งาน
+The link loads the `main` branch directly from GitHub. Enable **Gamepad Mode** in the playground and press **Reset** to begin.
 
-อ่านวิธีใช้ โครงสร้างวงจร และวิธีทดสอบใน [src/README.md](src/README.md)
+## Demo video
 
-- ซอร์ส Verilog: `src/`
-- ไฟล์รวมสำหรับ VGA Playground: `playground/project.v`
-- Testbench และเครื่องมือตรวจ RGB: `tests/`
+[Watch or download the demo recording](recording_20261013_191440.mp4)
+
+## Quick start
+
+1. Use the D-pad to move the cursor. Press **B** to cycle the current cell through A–Z, or **A** to clear it.
+2. Leave a cell before and after your message. Press **Select** before the first character to place `<`, then after the last character to place `>` on the same row.
+3. Press **Start** to scroll the selected message. Press it again to return to editing.
+
+The scrolling display uses an eleven-character queue, a 64×128 font, and eight-pixel movement steps.
+
+## Project files
+
+- [`src/`](src/): Verilog modules and the [detailed documentation](src/README.md).
+- [`playground/project.v`](playground/project.v): the combined source for the VGA Playground editor.
+- [`playground/build_bundle.py`](playground/build_bundle.py): regenerates the combined source after edits.
+- [`tests/`](tests/): behavioral tests and pixel-by-pixel RGB validation.
+- [`info.yaml`](info.yaml): source-file configuration for direct GitHub loading.
+
+See [src/README.md](src/README.md) for controls, state machines, RAM and queue behavior, and test instructions.

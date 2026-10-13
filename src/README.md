@@ -1,119 +1,129 @@
 # FPGA Text Marquee
 
-โปรเจกต์ Verilog สำหรับจอ VGA 640×480 มีโหมด EDIT สำหรับแก้ข้อความ และ SLIDE สำหรับป้ายไฟเลื่อน โดยใช้ top module `tt_um_vga_example` กับ VGA Playground
+This Verilog project drives a 640×480 VGA display with an **EDIT** mode for entering text and a **SLIDE** mode for a scrolling sign. It uses the `tt_um_vga_example` top-level interface supported by VGA Playground.
 
-## ปุ่มควบคุม
+[Open this project in VGA Playground](https://vga-playground.com/?repo=https://github.com/789852tonnam/TextDisplayVGA-FPGA&ref=main)
 
-| ปุ่ม | การทำงานใน EDIT |
+## Demo video
+
+[Watch or download the demo recording](../recording_20261013_191440.mp4)
+
+## Controls
+
+| Button | Action |
 | --- | --- |
-| D-pad | เลื่อน cursor ครั้งละหนึ่งช่อง |
-| B | อ่าน ASCII จาก RAM ของช่องนั้น แล้วเพิ่ม `A → B → … → Z → A`; ช่องว่างเริ่มที่ A |
-| A | เขียนช่องว่าง ASCII `0x20` ลงช่องปัจจุบัน |
-| Select | วาง `<` ครั้งแรก แล้ววาง `>` ครั้งที่สอง; เมื่อเลือกครบแล้ว กดอีกครั้งเพื่อเริ่มช่วงใหม่ |
-| Start | เข้า SLIDE เมื่อเลือกช่วงครบ; กดอีกครั้งใน SLIDE เพื่อกลับ EDIT |
-| Reset | กลับ EDIT, ย้าย cursor ไป (0,0), และล้างสถานะการเลือกช่วง |
+| D-pad | Move the cursor by one cell in EDIT. |
+| B | Read the current cell from RAM and increment it through `A → B → … → Z → A`. Blank cells start at A. |
+| A | Write a space, ASCII `0x20`, to the current cell. |
+| Select | Place `<` on the first press and `>` on the second. After completing a range, press again to begin a new selection. |
+| Start | Enter SLIDE after selecting a valid range; press again in SLIDE to return to EDIT. |
+| Reset | Return to EDIT, move the cursor to (0,0), and clear the selection state. |
 
-ปุ่มทำงานครั้งเดียวตอนเริ่มกด การกดค้างไม่ทำให้ทำงานซ้ำ ใน SLIDE จะหยุดแก้ RAM และซ่อน cursor
+Each button acts once on its rising edge; holding it does not repeat the action. SLIDE disables text editing and hides the cursor. Returning to EDIT preserves the text, cursor position, and completed selection.
 
-## เลือกข้อความที่จะเลื่อน
+## Selecting a message
 
-1. เขียนข้อความในแถวเดียวกัน โดยเว้นช่องสำหรับเครื่องหมายก่อนและหลังข้อความ
-2. ย้าย cursor ไปช่องก่อนตัวแรก แล้วกด Select เพื่อวาง `<`
-3. ย้าย cursor ไปช่องหลังตัวสุดท้าย แล้วกด Select เพื่อวาง `>`
-4. กด Start เพื่อเข้า SLIDE
+1. Enter your message on one row, leaving a cell for a marker before and after the text.
+2. Move the cursor to the cell before the first character and press Select to place `<`.
+3. Move to the cell after the last character and press Select to place `>`.
+4. Press Start to enter SLIDE.
 
-ตัวอย่าง `<HELLO FPGA>` จะเลื่อนเฉพาะ `HELLO FPGA` ไม่รวมตำแหน่งเครื่องหมาย
+For example, `<HELLO FPGA>` scrolls only `HELLO FPGA`; neither marker cell is part of the message.
 
-`>` ต้องอยู่แถวเดียวกับ `<` และอยู่ทางขวาห่างอย่างน้อยสองช่อง เพื่อให้มีตัวอักษรอยู่ระหว่างเครื่องหมายอย่างน้อยหนึ่งช่อง ตำแหน่งที่อยู่ก่อน `<`, ทับกัน, ติดกัน หรืออยู่คนละแถวจะถูกปฏิเสธ การวาง `<` ต้องเหลือพื้นที่สำหรับข้อความและ `>` ด้วย
+The right marker must be on the same row and at least two columns to the right of the left marker, leaving at least one cell inside the range. A marker before, on top of, or directly adjacent to `<`, or on another row, is rejected. The left marker must also leave room for at least one message cell and the right marker.
 
-เครื่องหมายเป็นภาพวาดทับจอ ไม่ได้เขียนทับ RAM ข้อความใต้เครื่องหมายยังอยู่ แต่ช่องที่เป็นตำแหน่งเครื่องหมายจะไม่ถูกนำไปเลื่อน
+Markers are display overlays. They do not overwrite RAM, so characters underneath them remain stored, although those endpoint cells are excluded from the scrolling message.
 
-## หลักการวงจร
+## Circuit operation
 
-### EDIT และ RAM
+### EDIT and text RAM
 
-EDIT แสดงกริด 80×30 ช่อง ฟอนต์เดิมมีขนาด 8×16 พิกเซล RAM เก็บรหัส ASCII ขนาด 7 บิต จำนวน 4096 ช่อง ที่อยู่ช่องคือ `{row[4:0], column[6:0]}` ดังนั้นแต่ละแถวมี stride 128 ช่อง
+EDIT displays an 80×30 grid with an 8×16 font. RAM stores 4096 seven-bit ASCII codes. The cell address is `{row[4:0], column[6:0]}`, so each row has a stride of 128 addresses.
 
-ปุ่ม B เพิ่มค่าจาก `memory[wr_adr]` ของตำแหน่ง cursor โดยตรง ไม่มีตัวนับตัวอักษรส่วนกลาง รหัสที่อยู่นอก A–Y รวมถึง Z จะเปลี่ยนเป็น A
+B increments the value read from `memory[wr_adr]` at the cursor. There is no global alphabet counter. A–Y advance by one; Z and values outside A–Y become A.
 
-RAM มีค่าตั้งต้นเป็นศูนย์ ซึ่ง font ROM แสดงเป็นช่องว่าง `initial` นี้ทำครั้งเดียวตอนเริ่มต้น; Reset ไม่ล้างข้อความที่เขียนไว้ RAM ใช้การอ่านแบบ asynchronous สำหรับ cursor/เติมคิว และอ่านแบบ synchronous สำหรับ VGA โดย Vivado สังเคราะห์เป็น distributed RAM จาก LUT
+RAM is initialized to zero, which the font ROM renders as blank. The `initial` block runs at startup; Reset does not erase stored text. An asynchronous read supplies the cursor or queue refill, while a synchronous read serves the VGA scan. Vivado synthesizes this memory as distributed RAM using LUTs.
 
-### SLIDE และคิว 11 ตัว
+### SLIDE and the eleven-character queue
 
-- ขยายฟอนต์ 8 เท่า เป็นตัวละ 64×128 พิกเซล
-- จอกว้าง 640 พิกเซลแสดงได้ 10 ตัวเต็ม และใช้ตัวที่ 11 รองรับขอบที่กำลังเลื่อนเข้าจอ
-- เก็บรหัส ASCII 11 ตัวใน `slide_buffer[0:10]`
-- `slide_phase_reg` นับ 0–7 แทนระยะเลื่อน 0, 8, 16, …, 56 พิกเซล
-- เมื่อครบ 8 จังหวะหรือ 64 พิกเซล จะดันคิวหนึ่งช่องและเติมตัวถัดไปจาก RAM
-- อ่านวนเฉพาะช่วงด้านใน `< >`; ข้อความที่สั้นกว่า 11 ตัวจะวนซ้ำเพื่อเติมคิว
-- เติมคิวและปรับระยะเลื่อนช่วง vertical blanking เพื่อลดภาพฉีก
-- ตัวอักษรอยู่กึ่งกลางแนวตั้ง ตั้งแต่ y=176 ถึง y=303
+- The font is enlarged eight times to 64×128 pixels per character.
+- A 640-pixel-wide display fits ten complete characters. An eleventh character covers the portion entering at the right edge during movement.
+- `slide_buffer[0:10]` stores eleven ASCII codes.
+- `slide_phase_reg` counts 0–7, representing offsets of 0, 8, 16, …, 56 pixels.
+- After eight movement steps, or 64 pixels, the queue shifts by one character and reads the next character from RAM.
+- Reads wrap within the selected interior. Messages shorter than eleven characters repeat to fill the queue.
+- Queue loading and movement updates occur during vertical blanking to avoid changing the queue while visible text is being drawn.
+- The text is vertically centered at y=176 through y=303.
 
-ค่าเริ่มต้น `SLIDE_STEP_FRAMES = 4` คือเลื่อน 8 พิกเซลทุก 4 เฟรม ปรับความเร็วด้วย parameter นี้ใน `19_text_screen_gen_playground.v` และปรับตำแหน่งแนวตั้งด้วย `SLIDE_TOP`
+The default `SLIDE_STEP_FRAMES = 4` moves the text eight pixels every four frames. Adjust this parameter in `19_text_screen_gen_playground.v` to change speed, and `SLIDE_TOP` to change vertical placement.
 
-### FSM
+### State machines
 
-| FSM | State |
+| FSM | States |
 | --- | --- |
-| โหมดหลัก | `EDIT`, `SLIDE` |
-| การเลือกช่วง | `SEL_NONE` ยังไม่เลือก, `SEL_END` รอ `>`, `SEL_READY` เลือกครบ |
+| Main mode | `EDIT`, `SLIDE` |
+| Range selection | `SEL_NONE`: no selection; `SEL_END`: waiting for `>`; `SEL_READY`: complete range. |
 
-การเติมคิวใช้ flag `slide_loading_reg`, `slide_ready_reg` และ counter แยกจาก FSM ทั้งสองชุด
+Queue loading uses `slide_loading_reg`, `slide_ready_reg`, and counters separately from these two FSMs.
 
-## ไฟล์สำคัญ
+## Source files
 
-| ไฟล์ | หน้าที่ |
+| File | Purpose |
 | --- | --- |
-| `19_top_SwitchTextDisplay_playground.v` | เชื่อม gamepad, VGA sync และวงจรข้อความ; คาดการณ์ตำแหน่งล่วงหน้า 2 clock |
-| `19_text_screen_gen_playground.v` | EDIT/SLIDE, เลือกช่วง, คิว และการวาดข้อความ |
-| `13_simpledualportMem.v` | RAM เก็บ ASCII และพอร์ตอ่าน cursor |
-| `19_ascii_rom_playground.v` | Font ROM ของ ASCII ขนาด 8×16 |
-| `gamepad_pmod.v` | รับและถอดรหัสสถานะ gamepad จาก serial data/clock/latch |
-| `hsync_generator.v` | สร้าง VGA timing 640×480 |
-| `10_debounce.v` | โมดูลเดิมที่เก็บไว้; วงจรปัจจุบันจับขอบสถานะ gamepad โดยตรงและไม่ได้ใช้โมดูลนี้ |
+| `19_top_SwitchTextDisplay_playground.v` | Connects the gamepad, VGA timing, and text renderer; predicts pixel coordinates two clocks ahead. |
+| `19_text_screen_gen_playground.v` | Implements editing, selection, mode changes, the queue, and text rendering. |
+| `13_simpledualportMem.v` | Stores ASCII codes and supplies the cursor read port. |
+| `19_ascii_rom_playground.v` | Provides the 8×16 ASCII font. |
+| `gamepad_pmod.v` | Receives serial data, clock, and latch signals and decodes gamepad states. |
+| `hsync_generator.v` | Generates 640×480 VGA timing. |
+| `10_debounce.v` | Retained from the original project; the current circuit detects gamepad button edges directly and does not instantiate it. |
 
-Gamepad ใช้ `ui_in[4]` เป็น latch, `[5]` เป็น serial clock และ `[6]` เป็น data ส่วน gamepad vector ภายในเรียง `{B,Y,Select,Start,Up,Down,Left,Right,A,X,L,R}`
+The gamepad uses `ui_in[4]` for latch, `[5]` for its serial clock, and `[6]` for data. The internal button vector is `{B,Y,Select,Start,Up,Down,Left,Right,A,X,L,R}`.
 
-## รันบน VGA Playground
+## Running in VGA Playground
 
-1. จาก root ของ repository รัน `python3 playground/build_bundle.py` เมื่อมีการแก้ src
-2. เปิด https://vga-playground.com/?preset=gamepad
-3. คัดลอกทั้งไฟล์ `playground/project.v` ไปแทนแท็บ `project.v` ของเว็บ
-4. เก็บแท็บ `gamepad_pmod.v` และ `hvsync_generator.v` ของ preset ไว้
-5. เปิด Gamepad Mode แล้วกด Reset ก่อนใช้งาน
+### Load directly from GitHub
 
-[เปิด TextDisplayVGA-FPGA บน VGA Playground จาก GitHub](https://vga-playground.com/?repo=https://github.com/789852tonnam/TextDisplayVGA-FPGA&ref=main)
+[Open TextDisplayVGA-FPGA in VGA Playground](https://vga-playground.com/?repo=https://github.com/789852tonnam/TextDisplayVGA-FPGA&ref=main)
 
-ลิงก์นี้โหลด branch `main` โดยอ่าน `info.yaml` ที่ root และไฟล์ใน `src/` ไม่ต้องคัดลอกโค้ดลง editor หลัง push โค้ดขึ้น GitHub แล้ว เปิดลิงก์และเปิด Gamepad Mode เพื่อใช้งาน
+This link loads the `main` branch using the root `info.yaml` and the source files in `src/`. Enable **Gamepad Mode** and press **Reset** before using the controls.
 
-รายละเอียดรูปแบบลิงก์: [VGA Playground — URL Parameters](https://github.com/TinyTapeout/vga-playground#url-parameters)
+See [VGA Playground — URL Parameters](https://github.com/TinyTapeout/vga-playground#url-parameters) for the repository-loading format.
 
-โค้ด top ใช้ interface ของ VGA Playground/Tiny Tapeout การนำลงบอร์ด FPGA จริงต้องจัด clock และ pin constraints ให้ตรงบอร์ดด้วย
+### Copy the combined source
 
-## ทดสอบ
+1. From the repository root, run `python3 playground/build_bundle.py` after editing `src/`.
+2. Open [VGA Playground with the Gamepad preset](https://vga-playground.com/?preset=gamepad).
+3. Replace the editor's `project.v` tab with the complete contents of `playground/project.v`.
+4. Keep the preset's `gamepad_pmod.v` and `hvsync_generator.v` tabs.
+5. Enable Gamepad Mode and press Reset.
 
-ต้องมี Vivado Simulator (`xvlog`, `xelab`, `xsim`), Python 3 พร้อม Pillow และ `rg`
+The top-level module uses the VGA Playground/Tiny Tapeout interface. Running on a physical FPGA board also requires a suitable pixel clock and board-specific pin constraints.
 
-จาก root ของ repository:
+## Testing
+
+Requirements: Vivado Simulator (`xvlog`, `xelab`, and `xsim`), Python 3 with Pillow, and `rg`.
+
+From the repository root:
 
 ```bash
 bash tests/run_tests.sh
 ```
 
-ถ้าไม่ได้ตั้ง Vivado ไว้ใน PATH ให้กำหนดโฟลเดอร์ bin ของ installation:
+If Vivado is not on PATH, specify its installation's bin directory:
 
 ```bash
 VIVADO_BIN=/path/to/Vivado/bin bash tests/run_tests.sh
 ```
 
-- `tb_marquee.v` ตรวจปุ่ม, ช่วงที่ไม่ถูกต้อง, overlay, คิว, การวนข้อความ, จังหวะเลื่อน, การกลับ EDIT และ Reset
-- `tb_marquee_render.v` เก็บ RGB จาก top จริงที่เฟส 0, เฟส 7 และหลังดันคิว
-- `check_marquee_pixels.py` เทียบทุกพิกเซลของภาพ 640×480 ทั้งสามภาพกับ font ROM และตำแหน่งที่คาดไว้
+- `tb_marquee.v` checks controls, invalid ranges, overlays, queue loading and wrapping, movement cadence, return to EDIT, and Reset.
+- `tb_marquee_render.v` captures RGB from the actual top-level pipeline at phase 0, phase 7, and after a queue shift.
+- `check_marquee_pixels.py` compares all pixels in the three 640×480 frames against the font ROM and expected scrolling positions.
 
-ผลและ log จะอยู่ในโฟลเดอร์ชั่วคราวที่ script แจ้งเมื่อจบ ไม่เขียนทับไฟล์ซอร์ส ภาพตัวอย่างจาก simulation อยู่ใน `playground/previews/`
+The script prints the temporary directory containing results and logs. It regenerates the combined playground file but does not modify the Verilog source files. Simulation previews are available in `playground/previews/`.
 
-## ที่มา
+## Credits
 
-Font/text rendering พัฒนาต่อจาก FPGA Prototyping by Verilog Examples ของ Pong P. Chu และโค้ดที่ปรับสำหรับ Basys 3/VGA Playground รายละเอียดเครดิตอยู่ในส่วนหัวไฟล์ซอร์ส
+The font/text-rendering design builds on *FPGA Prototyping by Verilog Examples* by Pong P. Chu and adaptations for Basys 3/VGA Playground. Source-file headers retain the corresponding credits.
 
-Gamepad PMOD มาจาก Pat Deegan / Psychogenic: https://github.com/psychogenic/gamepad-pmod โดยคงข้อความ copyright และ SPDX license ในซอร์สไว้
+The Gamepad PMOD module comes from [Pat Deegan / Psychogenic](https://github.com/psychogenic/gamepad-pmod). Its original copyright and SPDX license header is preserved.
