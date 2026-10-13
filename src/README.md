@@ -82,7 +82,11 @@ Gamepad ใช้ `ui_in[4]` เป็น latch, `[5]` เป็น serial clock
 4. เก็บแท็บ `gamepad_pmod.v` และ `hvsync_generator.v` ของ preset ไว้
 5. เปิด Gamepad Mode แล้วกด Reset ก่อนใช้งาน
 
-อีกทางหนึ่ง หลังนำ repository ขึ้น GitHub แล้ว สามารถเปิด `https://vga-playground.com/?repo=https://github.com/USER/REPO` ได้ โดย `info.yaml` ที่ root ระบุไฟล์ซอร์สใน `src/` ให้เว็บโหลด
+[เปิด TextDisplayVGA-FPGA บน VGA Playground จาก GitHub](https://vga-playground.com/?repo=https://github.com/789852tonnam/TextDisplayVGA-FPGA&ref=main)
+
+ลิงก์นี้โหลด branch `main` โดยอ่าน `info.yaml` ที่ root และไฟล์ใน `src/` ไม่ต้องคัดลอกโค้ดลง editor หลัง push โค้ดขึ้น GitHub แล้ว เปิดลิงก์และเปิด Gamepad Mode เพื่อใช้งาน
+
+รายละเอียดรูปแบบลิงก์: [VGA Playground — URL Parameters](https://github.com/TinyTapeout/vga-playground#url-parameters)
 
 โค้ด top ใช้ interface ของ VGA Playground/Tiny Tapeout การนำลงบอร์ด FPGA จริงต้องจัด clock และ pin constraints ให้ตรงบอร์ดด้วย
 
