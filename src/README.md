@@ -90,37 +90,7 @@ This link loads the `main` branch using the root `info.yaml` and the source file
 
 See [VGA Playground — URL Parameters](https://github.com/TinyTapeout/vga-playground#url-parameters) for the repository-loading format.
 
-### Copy the combined source
-
-1. From the repository root, run `python3 playground/build_bundle.py` after editing `src/`.
-2. Open [VGA Playground with the Gamepad preset](https://vga-playground.com/?preset=gamepad).
-3. Replace the editor's `project.v` tab with the complete contents of `playground/project.v`.
-4. Keep the preset's `gamepad_pmod.v` and `hvsync_generator.v` tabs.
-5. Enable Gamepad Mode and press Reset.
-
 The top-level module uses the VGA Playground/Tiny Tapeout interface. Running on a physical FPGA board also requires a suitable pixel clock and board-specific pin constraints.
-
-## Testing
-
-Requirements: Vivado Simulator (`xvlog`, `xelab`, and `xsim`), Python 3 with Pillow, and `rg`.
-
-From the repository root:
-
-```bash
-bash tests/run_tests.sh
-```
-
-If Vivado is not on PATH, specify its installation's bin directory:
-
-```bash
-VIVADO_BIN=/path/to/Vivado/bin bash tests/run_tests.sh
-```
-
-- `tb_marquee.v` checks controls, invalid ranges, overlays, queue loading and wrapping, movement cadence, return to EDIT, and Reset.
-- `tb_marquee_render.v` captures RGB from the actual top-level pipeline at phase 0, phase 7, and after a queue shift.
-- `check_marquee_pixels.py` compares all pixels in the three 640×480 frames against the font ROM and expected scrolling positions.
-
-The script prints the temporary directory containing results and logs. It regenerates the combined playground file but does not modify the Verilog source files. Simulation previews are available in `playground/previews/`.
 
 ## Credits
 

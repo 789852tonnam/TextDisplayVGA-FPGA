@@ -21,9 +21,6 @@ The scrolling display uses an eleven-character queue, a 64×128 font, and eight-
 ## Project files
 
 - [`src/`](src/): Verilog modules and the [detailed documentation](src/README.md).
-- [`playground/project.v`](playground/project.v): the combined source for the VGA Playground editor.
-- [`playground/build_bundle.py`](playground/build_bundle.py): regenerates the combined source after edits.
-- [`tests/`](tests/): behavioral tests and pixel-by-pixel RGB validation.
 - [`info.yaml`](info.yaml): source-file configuration for direct GitHub loading.
 
-See [src/README.md](src/README.md) for controls, state machines, RAM and queue behavior, and test instructions.
+See [src/README.md](src/README.md) for controls, state machines, and RAM and queue behavior.
