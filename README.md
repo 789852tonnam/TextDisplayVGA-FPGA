@@ -2,13 +2,13 @@
 
 A Verilog VGA text editor and scrolling sign for a 640×480 display. Edit characters with a gamepad, select a message with `< >` overlays, and switch to a scrolling display.
 
-[Open in VGA Playground](https://vga-playground.com/?repo=https://github.com/789852tonnam/TextDisplayVGA-FPGA&ref=main)
+vga-playground: https://vga-playground.com/?repo=https://github.com/789852tonnam/TextDisplayVGA-FPGA&ref=main
 
 The link loads the `main` branch directly from GitHub. Enable **Gamepad Mode** in the playground and press **Reset** to begin.
 
 ## Demo video
 
-[Watch or download the demo recording](recording_20261013_191440.mp4)
+demo record: [`recording_20261013_191440.mp4`](recording_20261013_191440.mp4)
 
 ## Quick start
 
